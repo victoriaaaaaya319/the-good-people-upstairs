@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#111111">
 <meta property="og:title" content="樓上的好人｜線上節目單">
 <meta property="og:description" content="阮劇團《樓上的好人》線上節目手冊">
-<meta property="og:image" content="pages/01.webp">
+<meta property="og:image" content="pages/01.jpg">
 <style>
   html, body { margin: 0; height: 100%; background: #111; overflow: hidden; }
 
@@ -50,12 +50,32 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
     background: rgba(0, 0, 0, .65); color: #fff;
     font: 16px/1.6 system-ui, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
-    letter-spacing: .15em;
-    pointer-events: none; /* 不擋操作：第一次滑動就直接翻頁並關閉引導 */
+    letter-spacing: .15em; text-align: center;
+    touch-action: none; cursor: pointer; /* 引導期間先擋住翻頁：點一下或滑一下進到下一段 */
+    -webkit-tap-highlight-color: transparent; user-select: none;
     transition: opacity .4s ease;
   }
-  #guide.hide { opacity: 0; }
+  #guide.hide { opacity: 0; pointer-events: none; }
   #guide svg { width: 96px; height: 144px; overflow: visible; }
+  #guide .step { display: none; flex-direction: column; align-items: center; gap: 20px; padding: 0 24px; animation: fadein .4s ease; }
+  #guide .step.on { display: flex; }
+  #guide .title { font-size: 18px; font-weight: 600; }
+  #guide .sub { font-size: 14px; letter-spacing: .08em; opacity: .85; margin-top: -12px; }
+  #guide .dots { display: flex; gap: 8px; margin-top: 8px; }
+  #guide .dots i { width: 6px; height: 6px; border-radius: 50%; background: #fff; opacity: .3; transition: opacity .3s; }
+  #guide .dots i.on { opacity: 1; }
+  #guide .press { animation: press 1.8s ease-in-out infinite; transform-origin: 48px 72px; }
+  #guide .ring  { animation: ring 1.8s ease-out infinite; transform-origin: 48px 44px; }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes press {
+    0%, 100% { transform: scale(1); }
+    30%, 70% { transform: scale(.92); }
+  }
+  @keyframes ring {
+    0%, 20%  { transform: scale(.4); opacity: 0; }
+    35%      { opacity: .9; }
+    80%, 100% { transform: scale(1.5); opacity: 0; }
+  }
   #guide .hand { animation: swipe 1.8s ease-in-out infinite; }
   #guide .up   { animation: blink 1.8s ease-in-out infinite; }
   #guide .down { animation: blink 1.8s ease-in-out infinite .9s; }
@@ -68,7 +88,8 @@
     50%      { opacity: 1; }
   }
   @media (prefers-reduced-motion: reduce) {
-    #guide .hand, #guide .up, #guide .down { animation: none; opacity: 1; }
+    #guide .hand, #guide .up, #guide .down, #guide .press { animation: none; opacity: 1; }
+    #guide .ring { animation: none; opacity: .6; }
   }
 </style>
 </head>
@@ -78,7 +99,8 @@
 <div id="counter" aria-live="polite"></div>
 
 <div id="guide" role="status">
-  <svg viewBox="0 0 96 144" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+ <div class="step on">
+  <svgviewBox="0 0 96 144" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path class="up" d="M34 18 48 4l14 14"/>
     <path class="down" d="M34 126l14 14 14-14"/>
     <g class="hand">
@@ -89,7 +111,24 @@
       <path d="M67 74v-3a6 6 0 0 1 12 0v17c0 14-9 22-21 22h-4c-8 0-13-3-18-10L25 88a6 6 0 0 1 9-8l7 7"/>
     </g>
   </svg>
-  <div>上下滑動翻頁</div>
+  <div class="title">上下滑動翻頁</div>
+ </div>
+ <div class="step">
+  <svg viewBox="0 0 96 144" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <!-- 長按的波紋 -->
+    <circle class="ring" cx="48" cy="44" r="18"/>
+    <g class="press">
+      <path d="M41 78V48a7 7 0 0 1 14 0v24"/>
+      <path d="M55 72v-6a6 6 0 0 1 12 0v8"/>
+      <path d="M67 74v-3a6 6 0 0 1 12 0v17c0 14-9 22-21 22h-4c-8 0-13-3-18-10L25 88a6 6 0 0 1 9-8l7 7"/>
+    </g>
+    <!-- 下載 -->
+    <path d="M48 118v16m-7-7 7 7 7-7M34 142h28"/>
+  </svg>
+  <div class="title">長按可下載圖片</div>
+  <div class="sub">歡迎發到限動分享，記得 @our_theatre</div>
+ </div>
+ <div class="dots" aria-hidden="true"><i class="on"></i><i></i></div>
 </div>
 
 <script>
@@ -106,7 +145,7 @@
     img.alt = `第 ${i} 頁`;
     img.decoding = 'async';
     if (i > 2) img.loading = 'lazy';
-    img.src = `pages/${n}.webp`;
+    img.src = `pages/${n}.jpg`;
     sec.appendChild(img);
     book.appendChild(sec);
   }
@@ -117,12 +156,25 @@
   book.addEventListener('scroll', updateCounter, { passive: true });
   updateCounter();
 
-  const hideGuide = () => {
-    guide.classList.add('hide');
-    setTimeout(() => guide.remove(), 500);
-    ['touchstart', 'pointerdown', 'wheel', 'keydown'].forEach((e) => window.removeEventListener(e, hideGuide));
+  // 開場引導共兩段：點一下、滑一下、滾輪或按鍵都會進到下一段，最後一段結束才能翻頁
+  const steps = [...guide.querySelectorAll('.step')];
+  const dots = [...guide.querySelectorAll('.dots i')];
+  let step = 0, guideOpen = true, guideLock = false;
+  const advanceGuide = () => {
+    if (!guideOpen || guideLock) return;
+    guideLock = true;
+    setTimeout(() => { guideLock = false; }, 500);
+    if (++step < steps.length) {
+      steps.forEach((s, i) => s.classList.toggle('on', i === step));
+      dots.forEach((d, i) => d.classList.toggle('on', i === step));
+    } else {
+      guideOpen = false;
+      guide.classList.add('hide');
+      setTimeout(() => guide.remove(), 500);
+    }
   };
-  ['touchstart', 'pointerdown', 'wheel', 'keydown'].forEach((e) => window.addEventListener(e, hideGuide, { passive: true }));
+  guide.addEventListener('pointerup', advanceGuide);
+  guide.addEventListener('wheel', advanceGuide, { passive: true });
 
   // 滑鼠滾輪／觸控板：滾一下就翻一頁（手機觸控滑動交給 scroll-snap 處理）
   let wheelLock = false;
@@ -135,7 +187,8 @@
   }, { passive: false });
 
   window.addEventListener('keydown', (e) => {
-    if (['ArrowDown', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); goTo(current() + 1); }
+    if (guideOpen) { e.preventDefault(); advanceGuide(); return; }
+    if(['ArrowDown', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); goTo(current() + 1); }
     else if (['ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); goTo(current() - 1); }
     else if (e.key === 'Home') { e.preventDefault(); goTo(0); }
     else if (e.key === 'End') { e.preventDefault(); goTo(TOTAL - 1); }
